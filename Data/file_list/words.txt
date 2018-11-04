@@ -1,0 +1,10 @@
+0 Coat_Male
+1 Coat_Female
+2 Tshirt_Male
+3 Tshirt_Female
+4 Pants
+5 Down_Jacket
+6 Sweater
+7 Vest
+8 Suit
+9 Dress
