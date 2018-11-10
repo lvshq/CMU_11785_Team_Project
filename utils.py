@@ -17,7 +17,7 @@ def crop_and_scale_image(im):
         diff = height - width
         box = 0, diff/2, width, height - (diff - diff/2)
     im = im.crop(box)
-    toSize = 100,100
+    toSize = 150,150
     im= im.resize(toSize, Image.ANTIALIAS)
     return im
 

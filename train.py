@@ -2,6 +2,9 @@ import numpy as np
 from utils import *
 from Model.train_model import Model
 import argparse
+import math
+import torch
+import torch.nn as nn
 
 parser = argparse.ArgumentParser(description="arguments")
 parser.add_argument("--epochs", default=50, type=int,
@@ -63,11 +66,13 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
 def main():
     train_data, train_labels = load_data("../existing material/Data/train_imgs/")
     test_data, test_labels = load_data("../existing material/Data/test_imgs/")
+    print(train_data.shape, train_labels.shape)
+    print(test_data.shape, test_labels.shape)
 
     model = Model()
     optimizer = torch.optim.Adam(model.parameters(),lr=args.lr, weight_decay=1e-6)
     criterion = nn.CrossEntropyLoss()
-    for e in args.epochs:
+    for e in range(args.epochs):
         train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
 
 

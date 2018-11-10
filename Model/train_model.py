@@ -36,7 +36,7 @@ class Model(nn.Module):
         self.pool5 = nn.MaxPool2d(3, 2)
 
         self.flatten = Flatten()
-        fc_input_neurons = 0
+        fc_input_neurons = 2304
         self.fc6 = nn.Linear(fc_input_neurons, 4096)
         self.relu6 = nn.ReLU(inplace=True)
         self.drop6 = nn.Dropout(0.5)
