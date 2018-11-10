@@ -1,0 +1,12 @@
+https://zhuanlan.zhihu.com/p/34084199
+图像检索之Large-Scale Image Retrieval with Attentive Deep Local Features
+
+https://zhuanlan.zhihu.com/p/23891866
+基于深度学习的图像检索：Deep Learning of Binary Hash Codes for Fast Image Retrieval
+
+https://zhuanlan.zhihu.com/p/21396173
+【大规模图像检索的利器】Deep哈希算法介绍
+
+https://www.leiphone.com/news/201612/IlUJrfAtsjjAl8Bx.html
+基于深度学习的商品检索技术
+
