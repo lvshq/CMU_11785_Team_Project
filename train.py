@@ -3,6 +3,7 @@ from utils import *
 from Model.train_model import Model
 import argparse
 import math
+import time
 import torch
 import torch.nn as nn
 
@@ -33,6 +34,7 @@ def compute_acc(model, data, total_labels):
 
 def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels):
     batch_size = 32
+    running_loss = 0.0
     indices = np.random.permutation(train_data.shape[0])
     for iteration in range(int(math.ceil(train_data.shape[0] / batch_size))):
         start_idx = (iteration * batch_size) % train_data.shape[0]
@@ -54,9 +56,17 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
         running_loss += train_loss.item()
         interval = 10
         if iteration % interval == 9:
+            outputs = outputs.cpu().detach().argmax(dim=1)
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
-            print("Epoch: {} Iteration: {} Training loss: {}, Training accuracy: {}".format((e), (iteration), running_loss/interval, train_accuracy))
+            print("Epoch: {} Iteration: {} Training loss: {} Training accuracy: {}".format((e), (iteration), running_loss/interval, train_accuracy))
             running_loss = 0.0
+
+    state = {
+        'epoch': e,
+        'state_dict': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+    }
+    torch.save(state, 'state_'+str(e)+'.pt')
 
     train_accuracy = compute_acc(model, train_data, train_labels)
     test_accuracy = compute_acc(model, test_data, test_labels)
@@ -75,6 +85,7 @@ def main():
     for e in range(args.epochs):
         train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
 
+    #train_accuracy = compute_acc(model, train_data, train_labels)
 
 if __name__ == "__main__":
     main()
