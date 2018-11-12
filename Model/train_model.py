@@ -6,6 +6,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 from torch.nn import Parameter
+from Utils.const import *
+
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -46,7 +48,7 @@ class Model(nn.Module):
         self.drop7 = nn.Dropout(0.5)
 
         self.fc8 = nn.Linear(4096, 128)
-        self.fc9 = nn.Linear(128, 10)
+        self.fc9 = nn.Linear(128, LABEL_NUM)
         pass
 
 

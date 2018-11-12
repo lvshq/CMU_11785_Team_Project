@@ -1,10 +1,8 @@
 import os
 import numpy as np
+from Utils.const import *
 from PIL import Image
 
-IMG_SIZE= (150, 150)
-TRAIN_IMGS_PATH = "./Data/train_imgs_v0/"
-TEST_IMGS_PATH = "./Data/test_imgs_v0"
 
 def crop_and_scale_image(im):
     """ Crops and scales a given image. 

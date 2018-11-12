@@ -1,5 +1,6 @@
 import numpy as np
-from utils import *
+from Utils.utils import *
+from Utils.const import *
 from Model.train_model import Model
 import argparse
 import math
@@ -14,8 +15,6 @@ parser.add_argument("--epochs", default=50, type=int,
 parser.add_argument("--lr", default=0.001, type=float,
                     help="The learning rate.")
 args = parser.parse_args()
-TRAIN_IMGS_PATH = "./Data/train_imgs_v0/"
-TEST_IMGS_PATH = "./Data/test_imgs_v0/"
 GPU = torch.cuda.is_available()
 
 
@@ -71,7 +70,7 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
         interval = 10
         if iteration % interval == 9:
             outputs = outputs.cpu().detach().argmax(dim=1)
-            #pdb.set_trace()
+            pdb.set_trace()
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
             print("Epoch: {} Iteration: {} Training loss: {} Training accuracy: {}".format((e), (iteration), running_loss/interval, train_accuracy))
             running_loss = 0.0
@@ -92,6 +91,7 @@ def main():
     train_data, train_labels = load_data(TRAIN_IMGS_PATH)
     test_data, test_labels = load_data(TEST_IMGS_PATH)
     train_data = preprocess(train_data)
+    test_data = preprocess(test_data)
     print(train_data.shape, train_labels.shape)
     print(test_data.shape, test_labels.shape)
 
