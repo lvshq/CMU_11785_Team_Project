@@ -100,35 +100,6 @@ def load_data(path):
     return data, labels
 
 
-def load_data(path):
-    """  Load training data and test data
-         Args:
-            path (string) : the data path
-         Returns:
-            data, labels (numpy array)
-    """
-    dname = path
-    im_paths = []
-    labels = []
-    for fname in os.listdir(dname):
-        if fname.endswith('.jpg'):
-            label = get_label(fname)
-            if label not in label_dict:
-                print('wrong label ', label)
-            im_paths.append(dname+fname)
-            try:
-                labels.append(label_dict[label])
-            except:
-                continue 
-    data = []
-    for file in im_paths:
-        data.append(fname_to_network_input(file))
-        
-    data = np.asarray(data)
-    labels = np.asarray(labels)
-    return data, labels
-
-
 label_dict = {}
 idx = 0
 for fname in os.listdir(TRAIN_IMGS_PATH):

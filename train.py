@@ -70,7 +70,7 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
         interval = 10
         if iteration % interval == 9:
             outputs = outputs.cpu().detach().argmax(dim=1)
-            pdb.set_trace()
+            #pdb.set_trace()
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
             print("Epoch: {} Iteration: {} Training loss: {} Training accuracy: {}".format((e), (iteration), running_loss/interval, train_accuracy))
             running_loss = 0.0
