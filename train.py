@@ -58,6 +58,7 @@ def compute_acc(model, data, total_labels):
 
 
 def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels):
+    tic = time.time()
     model.train()
     batch_size = args.batch_size
     running_loss = 0.0
@@ -87,8 +88,10 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
             outputs = outputs.cpu().detach().argmax(dim=1)
             #pdb.set_trace()
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
-            print("Epoch: {} Iteration: {:5.2f}% Training loss: {:5.4f} Training accuracy: {:5.4f}".format(e, 100 * iteration/total_batch, running_loss/interval, train_accuracy))
+            toc = time.time()
+            print("Epoch: {} Iteration: {:5.2f}% Time: {:5.2f}mins Training loss: {:5.4f} Training accuracy: {:5.4f}".format(e, 100 * iteration/total_batch, (toc-tic)/60/interval, running_loss/interval, train_accuracy))
             running_loss = 0.0
+            tic = time.time()
 
     state = {
         'epoch': e,
