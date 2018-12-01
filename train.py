@@ -1,6 +1,7 @@
 import numpy as np
 from Utils.utils import *
 from Utils.const import *
+from Utils.eval_func import *
 from Model.train_model import Model
 from Model.resnet import resnet18
 import argparse
@@ -15,16 +16,18 @@ parser.add_argument("--epochs", default=50, type=int,
                     help="The number of epochs to run.")
 parser.add_argument("--lr", default=0.001, type=float,
                     help="The learning rate.")
+parser.add_argument("--batch_size", default=32, type=float,
+                    help="The batch size.")
 parser.add_argument("--cuda", default=False, type=bool,
                     help="The GPU.")
-parser.add_argument("--use_test_for_train", default=True, type=bool,
+parser.add_argument("--use_test_for_train", default=False, type=bool,
                     help="Use test data for training to facilite model validation.")
 args = parser.parse_args()
 # if torch.cuda.is_available():
 #     cuda = True
 
 net = 'resnet' # resnet, alexnet
-pretrain = True
+pretrain = False
 if net == 'alexnet':
     logger = 'alexnet_pretrain' if pretrain == True else 'alexnet_nopretrain'
 elif net == 'resnet':
@@ -55,7 +58,8 @@ def compute_acc(model, data, total_labels):
 
 
 def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels):
-    batch_size = 32
+    model.train()
+    batch_size = args.batch_size
     running_loss = 0.0
     indices = np.random.permutation(train_data.shape[0])
     total_batch = int(math.ceil(train_data.shape[0] / batch_size))
@@ -97,7 +101,25 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
     test_accuracy = compute_acc(model, test_data, test_labels)
     print("Epoch: {} Total Training accuracy: {:5.4f} Test accuracy: {:5.4f}".format(e, train_accuracy, test_accuracy))
 
-
+def extract_embeddings(model, test_data):
+    model.eval()
+    batch_size = args.batch_size
+    indices = np.arange(test_data.shape[0])
+    total_batch = int(math.ceil(test_data.shape[0] / batch_size))
+    embeddings = torch.tensor(())
+    for iteration in range(total_batch):
+        start_idx = (iteration * batch_size) % test_data.shape[0]
+        idx = indices[start_idx : start_idx+batch_size]
+        inputs = test_data[idx]
+        inputs = torch.from_numpy(inputs).float()
+        if args.cuda:
+            inputs = inputs.cuda()
+        outputs = model(inputs)
+        outputs = model.get_embedding()
+        embeddings = torch.cat((embeddings, outputs), 0)
+    print('The embeddings size: ', embeddings.size())
+    return embeddings
+    
 def main():
     if args.use_test_for_train:
         train_data, train_labels = load_data(TEST_IMGS_PATH)
@@ -108,7 +130,7 @@ def main():
     test_data = preprocess(test_data)
     print(train_data.shape, train_labels.shape)
     print(test_data.shape, test_labels.shape)
-
+    
     if net == 'alexnet':
         model = Model()
     elif net == 'resnet':
@@ -120,7 +142,10 @@ def main():
     criterion = nn.CrossEntropyLoss()
     for e in range(args.epochs):
         train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
-
+        embeddings = extract_embeddings(model, test_data)
+        score = eval(embeddings, test_labels, 100)
+        print('Score {:5.4f}'.format(score))
+        
     #train_accuracy = compute_acc(model, train_data, train_labels)
 
 if __name__ == "__main__":

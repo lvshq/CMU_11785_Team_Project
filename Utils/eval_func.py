@@ -1,6 +1,7 @@
 import torch
 import heapq
 import numpy as np
+
 def eval(embeddings, labels, num_sample):
     """
     :param embeddings: list of tensors,each tensor should be a horizontal vector
