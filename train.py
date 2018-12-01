@@ -2,6 +2,7 @@ import numpy as np
 from Utils.utils import *
 from Utils.const import *
 from Model.train_model import Model
+from Model.resnet import resnet18
 import argparse
 import math
 import time
@@ -14,9 +15,20 @@ parser.add_argument("--epochs", default=50, type=int,
                     help="The number of epochs to run.")
 parser.add_argument("--lr", default=0.001, type=float,
                     help="The learning rate.")
+parser.add_argument("--cuda", default=False, type=bool,
+                    help="The GPU.")
+parser.add_argument("--use_test_for_train", default=True, type=bool,
+                    help="Use test data for training to facilite model validation.")
 args = parser.parse_args()
-GPU = torch.cuda.is_available()
+# if torch.cuda.is_available():
+#     cuda = True
 
+net = 'resnet' # resnet, alexnet
+pretrain = True
+if net == 'alexnet':
+    logger = 'alexnet_pretrain' if pretrain == True else 'alexnet_nopretrain'
+elif net == 'resnet':
+    logger = 'resnet_pretrain' if pretrain == True else 'resnet_nopretrain'
 
 def compute_acc(model, data, total_labels):
     """
@@ -31,7 +43,7 @@ def compute_acc(model, data, total_labels):
         labels = total_labels[start_idx : start_idx + bs]
         inputs = torch.from_numpy(inputs).float()
         labels = torch.from_numpy(labels).long()
-        if GPU:
+        if args.cuda:
             inputs = inputs.cuda()
             labels = labels.cuda()
         outputs = model(inputs)
@@ -46,16 +58,15 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
     batch_size = 32
     running_loss = 0.0
     indices = np.random.permutation(train_data.shape[0])
-    if GPU:
-        model = model.cuda()
-    for iteration in range(int(math.ceil(train_data.shape[0] / batch_size))):
+    total_batch = int(math.ceil(train_data.shape[0] / batch_size))
+    for iteration in range(total_batch):
         start_idx = (iteration * batch_size) % train_data.shape[0]
         idx = indices[start_idx : start_idx+batch_size]
         inputs = train_data[idx]
         labels = train_labels[idx]
         inputs = torch.from_numpy(inputs).float()
         labels = torch.from_numpy(labels).long()
-        if GPU:
+        if args.cuda:
             inputs = inputs.cuda()
             labels = labels.cuda()
         outputs = model(inputs)
@@ -72,7 +83,7 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
             outputs = outputs.cpu().detach().argmax(dim=1)
             #pdb.set_trace()
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
-            print("Epoch: {} Iteration: {} Training loss: {} Training accuracy: {}".format((e), (iteration), running_loss/interval, train_accuracy))
+            print("Epoch: {} Iteration: {:5.2f}% Training loss: {:5.4f} Training accuracy: {:5.4f}".format(e, 100 * iteration/total_batch, running_loss/interval, train_accuracy))
             running_loss = 0.0
 
     state = {
@@ -80,22 +91,31 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
-    torch.save(state, 'state_'+str(e)+'.pt')
+    torch.save(state, 'state_' + logger + '_' + str(e) + '.pt')
 
     train_accuracy = compute_acc(model, train_data, train_labels)
     test_accuracy = compute_acc(model, test_data, test_labels)
-    print("Epoch: {} Total Training accuracy: {} Test accuracy: {}".format(e, train_accuracy, test_accuracy))
+    print("Epoch: {} Total Training accuracy: {:5.4f} Test accuracy: {:5.4f}".format(e, train_accuracy, test_accuracy))
 
 
 def main():
-    train_data, train_labels = load_data(TRAIN_IMGS_PATH)
+    if args.use_test_for_train:
+        train_data, train_labels = load_data(TEST_IMGS_PATH)
+    else:
+        train_data, train_labels = load_data(TRAIN_IMGS_PATH)
     test_data, test_labels = load_data(TEST_IMGS_PATH)
     train_data = preprocess(train_data)
     test_data = preprocess(test_data)
     print(train_data.shape, train_labels.shape)
     print(test_data.shape, test_labels.shape)
 
-    model = Model()
+    if net == 'alexnet':
+        model = Model()
+    elif net == 'resnet':
+        model = resnet18(pretrained=pretrain)
+    if args.cuda:
+        model = model.cuda()
+    print(model)
     optimizer = torch.optim.Adam(model.parameters(),lr=args.lr, weight_decay=1e-6)
     criterion = nn.CrossEntropyLoss()
     for e in range(args.epochs):
