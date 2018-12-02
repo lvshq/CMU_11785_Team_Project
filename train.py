@@ -12,19 +12,19 @@ import torch.nn as nn
 import pdb
 
 parser = argparse.ArgumentParser(description="arguments")
-parser.add_argument("--epochs", default=50, type=int,
+parser.add_argument("--epochs", default=10, type=int,
                     help="The number of epochs to run.")
 parser.add_argument("--lr", default=0.001, type=float,
                     help="The learning rate.")
-parser.add_argument("--batch_size", default=32, type=float,
+parser.add_argument("--batch_size", default=64, type=float,
                     help="The batch size.")
 parser.add_argument("--cuda", default=False, type=bool,
                     help="The GPU.")
 parser.add_argument("--use_test_for_train", default=False, type=bool,
                     help="Use test data for training to facilite model validation.")
 args = parser.parse_args()
-# if torch.cuda.is_available():
-#     cuda = True
+if torch.cuda.is_available():
+    args.cuda = True
 
 net = 'resnet' # resnet, alexnet
 pretrain = False
@@ -39,7 +39,7 @@ def compute_acc(model, data, total_labels):
     """
     tic = time.time()
     corrects = 0
-    bs = 32
+    bs = args.batch_size
     for i in range(int(math.ceil(data.shape[0] / bs))):
         start_idx = (i * bs) % data.shape[0]
         inputs = data[start_idx : start_idx+bs]
@@ -89,7 +89,7 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
             #pdb.set_trace()
             train_accuracy = (outputs.numpy()==labels.cpu().numpy()).mean() 
             toc = time.time()
-            print("Epoch: {} Iteration: {:5.2f}% Time: {:5.2f}mins Training loss: {:5.4f} Training accuracy: {:5.4f}".format(e, 100 * iteration/total_batch, (toc-tic)/60/interval, running_loss/interval, train_accuracy))
+            print("Epoch: {} Iteration: {:5.2f}% Time: {:5.2f}s Training loss: {:5.4f} Training accuracy: {:5.4f}".format(e, 100 * iteration/total_batch, (toc-tic)/interval, running_loss/interval, train_accuracy))
             running_loss = 0.0
             tic = time.time()
 
@@ -103,6 +103,7 @@ def train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_d
     train_accuracy = compute_acc(model, train_data, train_labels)
     test_accuracy = compute_acc(model, test_data, test_labels)
     print("Epoch: {} Total Training accuracy: {:5.4f} Test accuracy: {:5.4f}".format(e, train_accuracy, test_accuracy))
+    return train_accuracy, test_accuracy
 
 def extract_embeddings(model, test_data):
     model.eval()
@@ -110,6 +111,8 @@ def extract_embeddings(model, test_data):
     indices = np.arange(test_data.shape[0])
     total_batch = int(math.ceil(test_data.shape[0] / batch_size))
     embeddings = torch.tensor(())
+    if args.cuda:
+        embeddings = embeddings.cuda()
     for iteration in range(total_batch):
         start_idx = (iteration * batch_size) % test_data.shape[0]
         idx = indices[start_idx : start_idx+batch_size]
@@ -142,14 +145,15 @@ def main():
         model = model.cuda()
     print(model)
     optimizer = torch.optim.Adam(model.parameters(),lr=args.lr, weight_decay=1e-6)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2, threshold=0.01, verbose=True)
     criterion = nn.CrossEntropyLoss()
     for e in range(args.epochs):
-        train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
-        embeddings = extract_embeddings(model, test_data)
-        score = eval(embeddings, test_labels, 100)
-        print('Score {:5.4f}'.format(score))
-        
-    #train_accuracy = compute_acc(model, train_data, train_labels)
+        train_accuracy, test_accuracy = train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
+        #embeddings = extract_embeddings(model, test_data)
+        #score = eval(embeddings, test_labels, 100)
+        #print('Score {:5.4f}'.format(score))
+        scheduler.step(test_accuracy)
+    
 
 if __name__ == "__main__":
     main()

@@ -133,7 +133,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
     
     def get_embedding(self):
-        return self.embedding.data.cpu()
+        return self.embedding.data
     
     def forward(self, x):
         x = self.conv1(x)
