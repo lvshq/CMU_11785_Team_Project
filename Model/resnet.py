@@ -148,9 +148,11 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        x = (x / torch.norm(x, p=2, dim=1, keepdim=True)) * 16
         self.embedding = x
         x = self.fc(x)
-
+        x = x / torch.norm(self.fc.weight, p=2, dim=1)
+        
         return x
 
 

@@ -4,6 +4,7 @@ from Utils.const import *
 from Utils.eval_func import *
 from Model.train_model import Model
 from Model.resnet import resnet18
+from Model.vgg import vgg16
 import argparse
 import math
 import time
@@ -12,7 +13,7 @@ import torch.nn as nn
 import pdb
 
 parser = argparse.ArgumentParser(description="arguments")
-parser.add_argument("--epochs", default=10, type=int,
+parser.add_argument("--epochs", default=20, type=int,
                     help="The number of epochs to run.")
 parser.add_argument("--lr", default=0.001, type=float,
                     help="The learning rate.")
@@ -23,15 +24,18 @@ parser.add_argument("--cuda", default=False, type=bool,
 parser.add_argument("--use_test_for_train", default=False, type=bool,
                     help="Use test data for training to facilite model validation.")
 args = parser.parse_args()
-if torch.cuda.is_available():
-    args.cuda = True
+# if torch.cuda.is_available():
+#     args.cuda = True
 
-net = 'resnet' # resnet, alexnet
+net = 'vgg' # resnet, alexnet, vgg
 pretrain = False
+pretrain_states = 'state_resnet_nopretrain_9.pt'
 if net == 'alexnet':
     logger = 'alexnet_pretrain' if pretrain == True else 'alexnet_nopretrain'
 elif net == 'resnet':
     logger = 'resnet_pretrain' if pretrain == True else 'resnet_nopretrain'
+elif net == 'vgg':
+    logger = 'vgg_pretrain' if pretrain == True else 'vgg_nopretrain'
 
 def compute_acc(model, data, total_labels):
     """
@@ -140,14 +144,27 @@ def main():
     if net == 'alexnet':
         model = Model()
     elif net == 'resnet':
-        model = resnet18(pretrained=pretrain)
+        model = resnet18()
+    elif net == 'vgg':
+        model = vgg16()
+    
     if args.cuda:
         model = model.cuda()
     print(model)
+    
     optimizer = torch.optim.Adam(model.parameters(),lr=args.lr, weight_decay=1e-6)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2, threshold=0.01, verbose=True)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=2, threshold=0.01, verbose=True)
     criterion = nn.CrossEntropyLoss()
-    for e in range(args.epochs):
+    
+    epochs = 0
+    if pretrain:
+        state = torch.load(pretrain_states)
+        epochs = state['epoch'] + 1
+        print(epochs)
+        model.load_state_dict(state['state_dict'])
+        optimizer.load_state_dict(state['optimizer'])
+        
+    for e in range(epochs, args.epochs):
         train_accuracy, test_accuracy = train_epoch(e, model, optimizer, criterion, train_data, train_labels, test_data, test_labels)
         #embeddings = extract_embeddings(model, test_data)
         #score = eval(embeddings, test_labels, 100)
